@@ -242,7 +242,7 @@ defmodule FinchTest do
     test "returns error when requesting bad address" do
       start_supervised!({Finch, name: MyFinch})
 
-      assert {:error, %{reason: :nxdomain}} =
+      assert {:error, :connect, %{reason: :nxdomain}} =
                Finch.build(:get, "http://idontexist.wat") |> Finch.request(MyFinch)
     end
 
