@@ -103,10 +103,10 @@ defmodule Finch.Conn do
             Telemetry.stop(:response, start_time, metadata)
             {:ok, %{conn | mint: mint}, acc}
 
-          {:error, mint, error} ->
+          {:error, mint, acc, error} ->
             metadata = Map.put(metadata, :error, error)
             Telemetry.stop(:response, start_time, metadata)
-            {:error, %{conn | mint: mint}, :request_receive_response, error}
+            {:error, %{conn | mint: mint}, error_detail(acc), error}
         end
 
       {:error, mint, error} ->
@@ -115,6 +115,24 @@ defmodule Finch.Conn do
         {:error, %{conn | mint: mint}, :request_send_request, error}
     end
   end
+
+  defp error_detail({nil, [], []}), do: :req_recv_empty
+
+  defp error_detail({status, headers, body}) do
+    "req_recv"
+    |> maybe_note_status(status)
+    |> maybe_note_headers(headers)
+    |> maybe_note_body(body)
+  end
+
+  defp maybe_note_status(acc, []), do: acc
+  defp maybe_note_status(acc, [_ | _]), do: acc <> "_status"
+
+  defp maybe_note_headers(acc, []), do: acc
+  defp maybe_note_headers(acc, [_ | _]), do: acc <> "_headers"
+
+  defp maybe_note_body(acc, []), do: acc
+  defp maybe_note_body(acc, [_ | _]), do: acc <> "_body"
 
   def close(%{mint: nil} = conn), do: conn
 
@@ -129,7 +147,7 @@ defmodule Finch.Conn do
         receive_response(entries, acc, fun, mint, ref, timeout)
 
       {:error, mint, error, _responses} ->
-        {:error, mint, error}
+        {:error, mint, acc, error}
     end
   end
 
@@ -148,7 +166,7 @@ defmodule Finch.Conn do
         {:ok, mint, acc}
 
       {:error, ^ref, error} ->
-        {:error, mint, error}
+        {:error, mint, acc, error}
     end
   end
 end

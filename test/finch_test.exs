@@ -230,7 +230,7 @@ defmodule FinchTest do
         Plug.Conn.send_resp(conn, 200, "delayed")
       end)
 
-      assert {:error, :request_receive_response, %{reason: :timeout}} =
+      assert {:error, :req_recv_empty, %{reason: :timeout}} =
                Finch.build(:get, endpoint(bypass))
                |> Finch.request(MyFinch, receive_timeout: timeout)
 
