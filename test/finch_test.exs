@@ -215,7 +215,7 @@ defmodule FinchTest do
           [{"connection", "keep-alive"}]
         )
 
-      for _ <- 1..10 do
+      for _ <- 1..100 do
         assert {:ok, %Response{status: 200, body: "OK"}} = Finch.request(request, MyFinch)
       end
     end

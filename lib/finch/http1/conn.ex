@@ -140,7 +140,7 @@ defmodule Finch.Conn do
         receive_response(entries, fun.({:status, value}, acc), closed?, fun, mint, ref, timeout)
 
       {:headers, ^ref, value} ->
-        closed? = List.keyfind(value, "connection", 0) == {"connection", "close"}
+        closed? = !HTTP.open?(mint)
         receive_response(entries, fun.({:headers, value}, acc), closed?, fun, mint, ref, timeout)
 
       {:data, ^ref, value} ->
