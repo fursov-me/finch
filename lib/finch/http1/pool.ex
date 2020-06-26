@@ -78,18 +78,20 @@ defmodule Finch.HTTP1.Pool do
   def handle_checkout(:checkout, {pid, _}, conn) do
     idle_time = System.monotonic_time() - conn.last_checkin
 
-    with {:ok, conn} <- Conn.set_mode(conn, :passive),
+    with true <- Conn.open?(conn),
+         {:ok, conn} <- Conn.set_mode(conn, :passive),
          :ok <- Conn.transfer(conn, pid) do
       {:ok, {conn, idle_time}, conn}
     else
-      {:error, _error} ->
+      _ ->
         {:remove, :closed}
     end
   end
 
   @impl NimblePool
   def handle_checkin(state, _from, conn) do
-    with :prechecked <- state,
+    with true <- Conn.open?(conn),
+         :prechecked <- state,
          {:ok, conn} <- Conn.set_mode(conn, :active) do
       {:ok, %{conn | last_checkin: System.monotonic_time()}}
     else
