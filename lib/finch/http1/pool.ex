@@ -121,11 +121,13 @@ defmodule Finch.HTTP1.Pool do
       NimblePool.precheckin(from, conn)
 
       case Conn.transfer(conn, pid) do
-        :ok -> conn
-        {:error, _} -> Conn.close(conn)
-      end
+        :ok ->
+          :prechecked
 
-      :prechecked
+        {:error, _} ->
+          Conn.close(conn)
+          :closed
+      end
     else
       :closed
     end

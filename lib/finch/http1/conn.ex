@@ -120,8 +120,8 @@ defmodule Finch.Conn do
   def close(%{mint: nil} = conn), do: conn
 
   def close(conn) do
-    {:ok, mint} = HTTP.close(conn.mint)
-    %{conn | mint: mint}
+    HTTP.close(conn.mint)
+    %{conn | mint: nil}
   end
 
   defp receive_response([], acc, fun, mint, ref, timeout) do
