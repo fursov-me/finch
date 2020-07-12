@@ -36,15 +36,15 @@ defmodule Finch.HTTP1.Pool do
       NimblePool.checkout!(
         pool,
         :checkout,
-        fn _from, {conn, idle_time} ->
+        fn from, {conn, idle_time} ->
           Telemetry.stop(:queue, start_time, metadata, %{idle_time: idle_time})
 
           with {:ok, conn} <- Conn.connect(conn),
                {:ok, conn, acc} <- Conn.request(conn, req, acc, fun, receive_timeout) do
-            {{:ok, acc}, conn}
+            {{:ok, acc}, precheckin_if_open(conn, from)}
           else
             {:error, conn, error} ->
-              {{:error, error}, conn}
+              {{:error, error}, precheckin_if_open(conn, from)}
           end
         end,
         pool_timeout
@@ -88,8 +88,9 @@ defmodule Finch.HTTP1.Pool do
   end
 
   @impl NimblePool
-  def handle_checkin(conn, _from, _old_conn) do
-    with true <- Conn.open?(conn),
+  def handle_checkin(state, _from, conn) do
+    with :prechecked <- state,
+         true <- Conn.open?(conn),
          {:ok, conn} <- Conn.set_mode(conn, :active) do
       {:ok, %{conn | last_checkin: System.monotonic_time()}}
     else
@@ -114,5 +115,14 @@ defmodule Finch.HTTP1.Pool do
   def terminate_worker(_reason, conn, pool_state) do
     Conn.close(conn)
     {:ok, pool_state}
+  end
+
+  defp precheckin_if_open(conn, from) do
+    if Conn.open?(conn) do
+      NimblePool.precheckin(from, conn)
+      :prechecked
+    else
+      :closed
+    end
   end
 end
