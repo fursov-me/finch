@@ -41,10 +41,10 @@ defmodule Finch.HTTP1.Pool do
 
           with {:ok, conn} <- Conn.connect(conn),
                {:ok, conn, acc} <- Conn.request(conn, req, acc, fun, receive_timeout) do
-            {{:ok, acc}, transfer_if_open(conn)}
+            {{:ok, acc}, conn}
           else
             {:error, conn, error} ->
-              {{:error, error}, transfer_if_open(conn)}
+              {{:error, error}, conn}
           end
         end,
         pool_timeout
@@ -78,17 +78,18 @@ defmodule Finch.HTTP1.Pool do
   def handle_checkout(:checkout, _from, conn) do
     idle_time = System.monotonic_time() - conn.last_checkin
 
-    with {:ok, conn} <- Conn.set_mode(conn, :passive) do
-      {:ok, {conn, idle_time}, conn}
-    else
+    case Conn.set_mode(conn, :passive) do
+      {:ok, conn} ->
+        {:ok, {conn, idle_time}, conn}
+
       {:error, _error} ->
         {:remove, :closed}
     end
   end
 
   @impl NimblePool
-  def handle_checkin(checkin, _from, _old_conn) do
-    with {:ok, conn} <- checkin,
+  def handle_checkin(conn, _from, _old_conn) do
+    with true <- Conn.open?(conn),
          {:ok, conn} <- Conn.set_mode(conn, :active) do
       {:ok, %{conn | last_checkin: System.monotonic_time()}}
     else
@@ -113,13 +114,5 @@ defmodule Finch.HTTP1.Pool do
   def terminate_worker(_reason, conn, pool_state) do
     Conn.close(conn)
     {:ok, pool_state}
-  end
-
-  defp transfer_if_open(conn) do
-    if Conn.open?(conn) do
-      {:ok, conn}
-    else
-      :closed
-    end
   end
 end
