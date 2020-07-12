@@ -17,14 +17,18 @@ defmodule Finch.Conn do
   end
 
   def connect(%{mint: mint} = conn) when not is_nil(mint) do
-    meta = %{
-      scheme: conn.scheme,
-      host: conn.host,
-      port: conn.port
-    }
+    if open?(conn) do
+      meta = %{
+        scheme: conn.scheme,
+        host: conn.host,
+        port: conn.port
+      }
 
-    Telemetry.event(:reused_connection, %{}, meta)
-    {:ok, conn}
+      Telemetry.event(:reused_connection, %{}, meta)
+      {:ok, conn}
+    else
+      connect(%{conn | mint: nil})
+    end
   end
 
   def connect(conn) do
@@ -120,8 +124,8 @@ defmodule Finch.Conn do
   def close(%{mint: nil} = conn), do: conn
 
   def close(conn) do
-    {:ok, mint} = HTTP.close(conn.mint)
-    %{conn | mint: mint}
+    {:ok, _mint} = HTTP.close(conn.mint)
+    %{conn | mint: nil}
   end
 
   defp receive_response([], acc, fun, mint, ref, timeout) do
