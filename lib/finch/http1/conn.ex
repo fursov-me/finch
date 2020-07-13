@@ -4,6 +4,8 @@ defmodule Finch.Conn do
   alias Mint.HTTP
   alias Finch.Telemetry
 
+  require Logger
+
   def new(scheme, host, port, opts, parent) do
     %{
       scheme: scheme,
@@ -56,8 +58,12 @@ defmodule Finch.Conn do
 
   def empty_and_open(conn) do
     case HTTP.recv(conn.mint, 0, 0) do
-      {:ok, mint, []} -> {:ok, %{conn | mint: mint}}
-      _ -> :error
+      {:ok, mint, []} ->
+        {:ok, %{conn | mint: mint}}
+
+      error ->
+        Logger.error("empty and open error - #{inspect(error)}")
+        :error
     end
   end
 
