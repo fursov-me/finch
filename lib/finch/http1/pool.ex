@@ -120,8 +120,8 @@ defmodule Finch.HTTP1.Pool do
     if Conn.open?(conn) do
       NimblePool.precheckin(from, conn)
 
-      with :ok <- Conn.transfer(conn, pid),
-           {:ok, conn} <- Conn.set_mode(conn, :active) do
+      with {:ok, conn} <- Conn.set_mode(conn, :active),
+           :ok <- Conn.transfer(conn, pid) do
         {:prechecked, conn}
       else
         _ -> {:closed, Conn.close(conn)}
