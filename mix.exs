@@ -32,7 +32,7 @@ defmodule Finch.MixProject do
 
   defp deps do
     [
-      {:mint, "~> 1.0"},
+      {:mint, github: "josevalim/mint", ref: "8dc03af990833d07ee8be2ac483e7272ac796e1b"},
       {:castore, "~> 0.1.5"},
       {:nimble_pool, "~> 0.2.1"},
       {:nimble_options, "~> 0.2.0"},
